@@ -1,0 +1,106 @@
+echo "# Final-Project" >> README.md
+git init
+git add README.md
+git commit -m "first commit"
+git branch -M main
+git remote add origin https://github.com/bbehari13/Final-Project.git
+git push -u origin main
+
+# imports
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# this allows numpy and plots to appear directly in the notebook
+%pylab inline
+
+#Download the file
+!pip install wget
+import wget
+output_directory = '.'
+url = 'ftp://sidads.colorado.edu/DATASETS/NOAA/G02190/TSP_borehole_inventory_composite.xls'
+filename = wget.download(url, out=output_directory)
+image = wget.download('ftp://sidads.colorado.edu/DATASETS/NOAA/G02190/TSP_BoreHoles_location_map_highres.jpg', out=output_directory)
+
+from google.colab import drive
+drive.mount('/content/drive')
+
+data = pd.read_excel(filename)
+data
+
+index = data.index
+cond = data['Latitude'] > 0
+northindices = index[cond]
+
+ndf=data.drop(data.index[0:(len(data.index)-len(northindices))])
+print(ndf['Latitude'])
+
+ndf = ndf.dropna(subset=['PF Thickness (m)'])
+index = ndf.index
+cond = ndf['PF Thickness (m)'] == 'NPF'
+indices = index[cond]
+
+ndf=ndf.drop(indices)
+
+ndf['PF Thickness (m)']
+
+def split(word):
+    return [char for char in word]
+for i in ndf['PF Thickness (m)']:
+  if type(i)==str:
+    word = split(i)
+    num = ''
+    for x in word:
+      if x.isdigit() or x=='.':
+        num += x
+      elif x == '-':
+        num += ' - '
+    num = [float(i) for i in num.split() if (i.isdigit() or '.' in split(i))]
+    num = sum(num)/len(num)
+    ndf['PF Thickness (m)'] = ndf['PF Thickness (m)'].replace([i], num)
+
+ndf
+
+for i in ndf['MAGT  (C)']:
+  if type(i)==str:
+    word = split(i)
+    num = ''
+    for x in word:
+      if x.isdigit() or x=='.' or x=='-':
+        num += x
+      elif x == ',':
+        num += '.'
+    num = [float(i) for i in num.split() if (i.isdigit() or '.' in split(i))]
+    num = sum(num)/len(num)
+    ndf['MAGT  (C)'] = ndf['MAGT  (C)'].replace([i], num)
+    
+new = ndf[['MAGT  (C)', 'PF Thickness (m)']].copy()
+new.describe()
+
+
+%pylab inline
+!pip install netcdf4
+import xarray as xr
+
+!pip uninstall shapely --yes
+!pip install shapely cartopy --no-binary shapely --no-binary cartopy
+!wget https://raw.githubusercontent.com/SciTools/cartopy/master/tools/cartopy_feature_download.py
+!python cartopy_feature_download.py physical
+!python cartopy_feature_download.py cultural
+!python cartopy_feature_download.py gshhs
+!python cartopy_feature_download.py cultural-extra
+
+import os
+import matplotlib.pyplot as plt
+
+import numpy as np
+
+from cartopy import config
+import cartopy.crs as ccrs
+
+import cartopy.crs as ccrs
+import matplotlib.pyplot as plt
+
+
+ax = plt.axes(projection=ccrs.PlateCarree())
+plt.plot(ndf['Longitude'], ndf['Latitude'], linestyle='None', marker='o')
+ax.coastlines()
